@@ -9,6 +9,8 @@ jobs:
   uptime:
     name: updown-webhook
     runs-on: ubuntu-latest
+    env:
+      REPO: dazwilkin/updown-webhook
     steps:
       - name: checkout
         uses: actions/checkout@v3
@@ -31,5 +33,5 @@ jobs:
             TOKEN=${{ secrets.GHCR }}
             VERSION=${{ env.VERSION }}
             COMMIT=${{ github.sha }}
-          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          tags: ghcr.io/${{ env.REPO }}:${{ github.sha }}
           push: true
