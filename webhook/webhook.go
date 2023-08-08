@@ -56,13 +56,17 @@ func (h *Handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var events updown.Events
 	if err := json.Unmarshal(body, &events); err != nil {
-		logger.Error("unable to parse request body as Event")
+		logger.Error("unable to parse request body as Event",
+			"error", err,
+		)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	if err := h.processEvents(events); err != nil {
-		logger.Error("unable to process events")
+		logger.Error("unable to process events",
+			"error", err,
+		)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -89,7 +93,9 @@ func (h *Handlers) processEvents(events []updown.Event) error {
 				"event":     event.Event,
 			}).Inc()
 
-		if err := h.processEvent(event); err != nil {
+		// If the event doesn't validate, record the error
+		// and skip process'ing the invalid event
+		if err := event.Validate(); err != nil {
 			logger.Error(err.Error())
 			h.Metrics["PageFailures"].With(
 				prometheus.Labels{
@@ -98,126 +104,65 @@ func (h *Handlers) processEvents(events []updown.Event) error {
 					"event":     event.Event,
 				}).Inc()
 			errors = append(errors, err)
+		} else {
+			h.processEvent(event)
 		}
 	}
 
 	if len(errors) != 0 {
-		return fmt.Errorf("multiple (%d) errors were encountered", len(errors))
+		return fmt.Errorf("%d event%s invalid",
+			len(errors),
+			func(i int) string {
+				if i == 1 {
+					return " is"
+				}
+
+				return "s are"
+			}(len(errors)),
+		)
 	}
 
 	return nil
 }
 
 // processEvent is a method that processes one Updown event
-func (h *Handlers) processEvent(event updown.Event) error {
+func (h *Handlers) processEvent(event updown.Event) {
 	handler := "processEvent"
 	logger := h.Logger.With("handler", handler)
 
-	// Because Event includes a union of types: Check, Downtime, SSL
-	// Necessary to validate that the event has the expected type
 	switch event.Event {
 	case "check.down":
-		// Expects Downtime
-		if event.Downtime == (updown.Downtime{}) {
-			return fmt.Errorf("expected 'check.down` event to contain 'downtime'")
-		}
-
 		logger.Info("Received",
 			"downtime", event.Downtime,
 		)
 	case "check.up":
-		// Expects Downtime
-		if event.Downtime == (updown.Downtime{}) {
-			return fmt.Errorf("expected 'check.up` event to contain 'downtime'")
-		}
-
 		logger.Info("Received",
 			"downtime", event.Downtime,
 		)
 	case "check.ssl_invalid":
-		// Expects SSL
-		if event.SSL == (updown.SSL{}) {
-			return fmt.Errorf("expected 'check.ssl_invalid' to contain 'ssl'")
-		}
-
-		// Expects Cert
-		if event.SSL.Cert == (updown.Cert{}) {
-			return fmt.Errorf("expected 'check.ssl_invalid' to contain 'ssl.cert'")
-		}
-
-		// Expects Error
-		if event.SSL.Error == "" {
-			return fmt.Errorf("expected 'check_ssl_invalid' to contain `ssl.error'")
-		}
-
 		logger.Info("Received",
 			"cert", event.SSL.Cert,
 			"error", event.SSL.Error,
 		)
 	case "check.ssl_valid":
-		// Expects SSL
-		if event.SSL == (updown.SSL{}) {
-			return fmt.Errorf("expected 'check.ssl_valid' to contain 'ssl'")
-		}
-
-		// Expects Cert
-		if event.SSL.Cert == (updown.Cert{}) {
-			return fmt.Errorf("expected 'check.ssl_invalid' to contain 'ssl.cert'")
-		}
-
 		logger.Info("Received",
 			"cert", event.SSL.Cert,
 		)
 	case "check.ssl_expiration":
-		// Expects SSL
-		if event.SSL == (updown.SSL{}) {
-			return fmt.Errorf("expected 'check.ssl_expiration' to contain 'ssl'")
-		}
-
-		// Expects Cert
-		if event.SSL.Cert == (updown.Cert{}) {
-			return fmt.Errorf("expected 'check.ssl_invalid' to contain 'ssl.cert'")
-		}
-
-		// Expects DaysBeforeExpiration
-		// Default numerical value is zero which is a valid value
-
 		logger.Info("Received",
 			"cert", event.SSL.Cert,
 		)
 	case "check.ssl_renewed":
-		// Expects SSL
-		if event.SSL == (updown.SSL{}) {
-			return fmt.Errorf("expected 'check.ssl_renewed' to contain 'ssl'")
-		}
-
-		// Expects NewCert+OldCert
-		if event.SSL.NewCert == (updown.Cert{}) && event.SSL.OldCert == (updown.Cert{}) {
-			return fmt.Errorf("expected 'check.ssl_renewed' to contain 'ssl.new_cert' and 'ssl.old_cert'")
-		}
-
 		logger.Info("Received",
 			"new_cert", event.SSL.NewCert,
 			"old_cert", event.SSL.OldCert,
 		)
 	case "check.performance_drop":
-		// Expects ApdexDropped
-		if event.ApdexDropped == "" {
-			return fmt.Errorf("expected 'check.performance_drop' to contain 'apdex_dropped'")
-		}
-
-		// Expects LastMetrics
-		if event.LastMetrics == nil {
-			return fmt.Errorf("expected 'check.performance_drop' to contain 'last_metrics'")
-		}
-
 		logger.Info("Received",
 			"apdex_dropped", event.ApdexDropped,
 			"last_metrics", event.LastMetrics,
 		)
 	default:
-		return fmt.Errorf("unexpected event type")
+		logger.Info("unexpected event type")
 	}
-
-	return nil
 }
