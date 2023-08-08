@@ -1,0 +1,36 @@
+# Golang implementation of a Webhook for [`updown.io`](https://updown.io)
+
+[![build](https://github.com/DazWilkin/updown-webhook/actions/workflows/build.yml/badge.svg)](https://github.com/DazWilkin/updown-webhook/actions/workflows/build.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/DazWilkin/updown-webhook)](https://goreportcard.com/report/github.com/DazWilkin/updown-webhook)
+
+## Events
+
+|Name|
+|----|
+|`check.down`|
+|`check.up`|
+|`check.ssl_invalid`|
+|`check.ssl_valid`|
+|`check.ssl_expiration`|
+|`check.ssl_renewed`|
+|`check.performance_drop`|
+
+## Test
+
+Add the Webhook to settings (console|API)
+
+https://updown.io/recipients/test
+
+## Prometheus
+
+Metrics are prefixed `updown_`
+
+|Name|Type|Description|
+|----|----|-----------|
+|`build_info`|Counter|A metrc with constant value '1'|
+|`handler_total`|Counter||
+|`handler_failures`|Counter||
+
+<hr/>
+<br/>
+<a href="https://www.buymeacoffee.com/dazwilkin" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
