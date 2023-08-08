@@ -1,0 +1,44 @@
+[
+  {
+    "event": "check.down",
+    "time": "2023-08-08T16:42:41Z",
+    "description": "DOWN: https://updown.io/ since 16:37:41 (UTC), reason: 418 I'm a teapot",
+    "check": {
+      "token": "xyz0",
+      "url": "https://updown.io",
+      "alias": null,
+      "last_status": 418,
+      "uptime": 100.0,
+      "down": true,
+      "down_since": "2023-08-08T16:37:41Z",
+      "error": "418 I'm a teapot",
+      "period": 30,
+      "apdex_t": 0.25,
+      "string_match": "",
+      "enabled": true,
+      "published": true,
+      "disabled_locations": [
+
+      ],
+      "recipients": [
+
+      ],
+      "last_check_at": "2023-08-08T16:42:26Z",
+      "next_check_at": "2023-08-08T16:42:56Z",
+      "mute_until": null,
+      "favicon_url": "https://updown.io/favicon.png",
+      "custom_headers": {
+      },
+      "http_verb": "GET/HEAD",
+      "http_body": ""
+    },
+    "downtime": {
+      "id": "64d27081893e4a8d33f03dca",
+      "error": "418 I'm a teapot",
+      "started_at": "2023-08-08T16:37:41Z",
+      "ended_at": null,
+      "duration": null,
+      "partial": null
+    }
+  }
+]
