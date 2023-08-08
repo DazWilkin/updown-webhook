@@ -40,7 +40,7 @@ var (
 )
 
 var (
-	counterBuildTime = promauto.NewCounterVec(
+	buildconfig = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name:      "build_info",
 			Namespace: namespace,
@@ -54,7 +54,7 @@ var (
 			"start_time",
 		},
 	)
-	handlerMetrics = map[string]*prometheus.CounterVec{
+	metrics = map[string]*prometheus.CounterVec{
 		"PageFailures": promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name:      "handler_failures",
@@ -92,7 +92,7 @@ func main() {
 		"go_version", GoVersion,
 		"start_time", strconv.FormatInt(StartTime, 10),
 	)
-	counterBuildTime.With(
+	buildconfig.With(
 		prometheus.Labels{
 			"subsystem":  subsystem,
 			"build_time": BuildTime,
@@ -105,7 +105,7 @@ func main() {
 	flag.Parse()
 
 	// Updown webhook
-	http.Handle("/", webhook.Handler(subsystem, handlerMetrics, logger))
+	http.Handle("/", webhook.Handler(subsystem, metrics, logger))
 
 	// Prometheus metrics
 	http.Handle("/metrics", promhttp.Handler())
