@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/DazWilkin/updown-webhook/updown"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slog"
 )
 
 // Handlers is a type that represents a webhook handler for Updown
