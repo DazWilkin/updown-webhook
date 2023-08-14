@@ -89,7 +89,7 @@ func (h *Handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if !h.validUserAgent(values) {
 			logger.Error(
-				fmt.Sprintf("expected User-Agent header to contain %s", updownUserAgent),
+				fmt.Sprintf("expected User-Agent header to contain '%s'", updownUserAgent),
 				"values", values,
 			)
 			w.WriteHeader(http.StatusBadRequest)
