@@ -77,7 +77,9 @@ func (h *Handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := h.Logger.With("handler", handler)
 
 	// Debug: enumerate headers
-	logger.Info("Headers", r.Header)
+	logger.Info("Debugging",
+		"headers", r.Header,
+	)
 
 	// Must include User-Agent header for updown.io
 	if values, ok := r.Header["User-Agent"]; !ok {
