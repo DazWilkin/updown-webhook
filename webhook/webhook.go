@@ -5,16 +5,24 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
+	"strings"
 
 	"github.com/DazWilkin/updown-webhook/updown"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const (
+	updownUserAgent string = "updown.io"
+	updownWhitelist string = "ips.updown.io"
+)
+
 // Handlers is a type that represents a webhook handler for Updown
 type Handlers struct {
 	Subsystem string
+	IPs       []net.IP
 	Metrics   map[string]*prometheus.CounterVec
 	Logger    *slog.Logger
 }
@@ -24,12 +32,42 @@ func Handler(
 	subsystem string,
 	metrics map[string]*prometheus.CounterVec,
 	logger *slog.Logger,
-) *Handlers {
+) (*Handlers, error) {
+	// On initialization enumerate valid updown.io IPs
+	ips, err := net.LookupIP(updownWhitelist)
+	if err != nil {
+		msg := "unable to enumerate updown.io IPs"
+		logger.Error(msg, "error", err)
+		return &Handlers{}, err
+	}
+
+	logger.Info("Caching updown.io IP whitelist",
+		"ips", ips,
+	)
+
 	return &Handlers{
 		Subsystem: subsystem,
+		IPs:       ips,
 		Metrics:   metrics,
 		Logger:    logger,
+	}, nil
+}
+
+func (h *Handlers) validUserAgent(values []string) bool {
+	for _, value := range values {
+		if strings.Contains(value, updownUserAgent) {
+			return true
+		}
 	}
+	return false
+}
+func (h *Handlers) permittedIP(ip net.IP) bool {
+	for _, x := range h.IPs {
+		if x.Equal(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 // ServeHTTP is a method that implements the http.Handler interface
@@ -37,6 +75,51 @@ func Handler(
 func (h *Handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler := "webhook"
 	logger := h.Logger.With("handler", handler)
+
+	// Debug: enumerate headers
+	logger.Info("Headers", r.Header)
+
+	// Must include User-Agent header for updown.io
+	if values, ok := r.Header["User-Agent"]; !ok {
+		logger.Error("expected 'User-Agent' header")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	} else {
+		if !h.validUserAgent(values) {
+			logger.Error(
+				fmt.Sprintf("expected User-Agent header to contain %s", updownUserAgent),
+				"values", values,
+			)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Must include X-Forward-For header with permitted IP
+	if values, ok := r.Header["X-Forwarded-For"]; !ok {
+		logger.Error("expected 'X-Forwarded-For' header")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	} else {
+		// Original client should be first address (if any)
+		if len(values) == 0 {
+			// X-Forwarded-For exists but is empty
+			logger.Error("expected 'X-Forwarded-For' header to contain at least one value")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// There are multiple X-Forward-For values
+		// First should be (!) the originating (updown.io) host
+		ip := net.ParseIP(values[0])
+		if !h.permittedIP(ip) {
+			logger.Error("unable to match IP to permitted IP list",
+				"ip", ip,
+			)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
 
 	// Webhook must be POST'ed
 	if r.Method != "POST" {

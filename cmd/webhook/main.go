@@ -105,7 +105,15 @@ func main() {
 	flag.Parse()
 
 	// Updown webhook
-	http.Handle("/", webhook.Handler(subsystem, metrics, logger))
+	hook, err := webhook.Handler(subsystem, metrics, logger)
+	if err != nil {
+		logger.Error("unable to create handlers",
+			"error", err,
+		)
+		panic(err)
+	}
+
+	http.Handle("/", hook)
 
 	// Prometheus metrics
 	http.Handle("/metrics", promhttp.Handler())

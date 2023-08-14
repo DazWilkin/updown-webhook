@@ -17,6 +17,60 @@
 
 ## Test
 
+```bash
+# Local
+WHOOK="8888"
+
+curl \
+--request POST \
+--header "Content-Type: application/json" \
+-d @"samples/check.down.json" \
+http://localhost:${WHOOK}
+```
+
+### Tailscale Serve
+
+```bash
+WHOOK="8888"
+PROXY="10000"
+
+# Available only within tailnet
+tailscale serve https:${PROXY} / http://localhost:${WHOOK}
+
+HOST="..."
+TAILNET="...ts.net"
+
+curl \
+--request POST \
+--header "Content-Type: application/json" \
+-d @"samples/check.down.json" \
+https://${HOST}.${TAILNET}:${PROXY}
+```
+
+### Tailscale Funnel
+
+```bash
+WHOOK="8888"
+PROXY="10000"
+
+tailscale serve https:${PROXY} / http://localhost:${WHOOK}
+
+# Available publicly (e.g. by Updown service)
+tailscale funnel ${PROXY} on
+
+HOST="..."
+TAILNET="...ts.net"
+
+curl \
+--request POST \
+--header "Content-Type: application/json" \
+-d @"samples/check.down.json" \
+https://${HOST}.${TAILNET}:${PROXY}
+
+```
+
+### Updown Webhook tester
+
 Add the Webhook to settings (console|API)
 
 https://updown.io/recipients/test
