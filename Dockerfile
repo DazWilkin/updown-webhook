@@ -1,10 +1,10 @@
-ARG GOLANG_VERSION="1.21"
+ARG GOLANG_VERSION="1.23.3"
 ARG PROJECT="updown-webhook"
 
 ARG COMMIT
 ARG VERSION
 
-FROM golang:${GOLANG_VERSION} as build
+FROM golang:${GOLANG_VERSION} AS build
 
 ARG PROJECT
 
@@ -33,7 +33,7 @@ RUN BUILD_TIME=$(date +%s) && \
 
 FROM gcr.io/distroless/static
 
-LABEL org.opencontainers.image.source https://github.com/DazWilkin/updown-webhook
+LABEL org.opencontainers.image.source="https://github.com/DazWilkin/updown-webhook"
 
 ARG PROJECT
 
