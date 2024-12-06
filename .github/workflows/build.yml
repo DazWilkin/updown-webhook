@@ -22,10 +22,12 @@ jobs:
           password: ${{ secrets.GHCR }}
       - name: get-version
         run: echo "VERSION=$(uname --kernel-release)" >> ${GITHUB_ENV}
-      - name: webhook
+      - name: Buildx Multi-platform Docker Image builds
+        id: docker-build-push-multi-platform
         uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64/v7,linux/arm64
           file: ./Dockerfile
           build-args: |
             TOKEN=${{ secrets.GHCR }}
@@ -33,3 +35,21 @@ jobs:
             COMMIT=${{ github.sha }}
           tags: ghcr.io/${{ env.REPO }}:${{ github.sha }}
           push: true
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@main
+      - name: Write signing key to disk (only needed for `cosign sign --key`)
+        run: echo "${{ secrets.SIGNING }}" > ./cosign.key
+      - name: Sign container image
+        run: |
+          DIGEST=${{ steps.docker-build-push-multi-platform.outputs.digest }}
+
+          cosign sign \
+          --yes \
+          --key=./cosign.key \
+          --annotations="repo=${{ github.repository }}" \
+          --annotations="workflow=${{ github.workflow }}" \
+          --annotations="commit=${{ github.sha }}" \
+          --annotations="version=${{ env.VERSION }}" \
+          ghcr.io/${{ env.REPO }}@${DIGEST}
+        env:
+          COSIGN_PASSWORD: ""
