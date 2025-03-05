@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v4
+      - name: QEMU
+        uses: docker/setup-qemu-action@v3
       - name: setup
         uses: docker/setup-buildx-action@v3
       - name: login
@@ -22,9 +24,9 @@ jobs:
           password: ${{ secrets.GHCR }}
       - name: get-version
         run: echo "VERSION=$(uname --kernel-release)" >> ${GITHUB_ENV}
-      - name: Buildx Multi-platform Docker Image builds
+      - name: Buildx Multi-platform Docker Images
         id: docker-build-push-multi-platform
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64/v7,linux/arm64
@@ -40,7 +42,7 @@ jobs:
       - name: Write signing key to disk (only needed for `cosign sign --key`)
         run: echo "${{ secrets.SIGNING }}" > ./cosign.key
       - name: Sign container image
-        run: |
+        run: |-
           DIGEST=${{ steps.docker-build-push-multi-platform.outputs.digest }}
 
           cosign sign \
