@@ -24,7 +24,7 @@ type Downtime struct {
 // NewCert|OldCert: check.ssl_renewed
 type SSL struct {
 	DaysBeforeExpiration uint   `json:"days_before_expiration,omitempty"`
-	Error                string `json:"error,omitemtpy"`
+	Error                string `json:"error,omitempty"`
 
 	Cert Cert `json:"cert,omitempty"`
 
